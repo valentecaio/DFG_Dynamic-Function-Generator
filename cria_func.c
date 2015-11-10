@@ -2,8 +2,6 @@
 /*
 a versão inicial vai apenas empilhar os parametros passados
 e fazer o call da função passada
-
-mudanca no notebook
 */
 
 #include <stdio.h>
