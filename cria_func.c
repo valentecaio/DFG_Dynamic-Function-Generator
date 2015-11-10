@@ -3,7 +3,7 @@
 a versão inicial vai apenas empilhar os parametros passados
 e fazer o call da função passada
 
-QUERO VER ESSA ZOEIRA AGORA
+ELFOS SAO RAPIDOS
 */
 
 #include <stdio.h>
