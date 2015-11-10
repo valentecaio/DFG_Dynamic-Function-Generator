@@ -3,7 +3,7 @@
 a versão inicial vai apenas empilhar os parametros passados
 e fazer o call da função passada
 
-mudanca em workspace
+mudanca no notebook
 */
 
 #include <stdio.h>
