@@ -3,7 +3,7 @@
 a versão inicial vai apenas empilhar os parametros passados
 e fazer o call da função passada
 
-ELFOS SAO RAPIDOS
+mudanda no desktop
 */
 
 #include <stdio.h>
