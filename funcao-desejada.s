@@ -8,13 +8,12 @@
 
 assemblyFoo:
 	push	%ebp
-	movl	%esp,	%ebp
+	movl	%esp, %ebp
 	
+	pushl	12(%ebp)	# empurra o parametro da direita (float ou inteiro, 32 bits)
+	pushl	8(%ebp)		# empurra o parametro da esquerda (float ou inteiro, 32 bits)
+	call	pow
 	
-	
-	movl	%ebp,	%esp
+	movl	%ebp, %esp
 	popl	%ebp
 	ret
-	
-	
-	
