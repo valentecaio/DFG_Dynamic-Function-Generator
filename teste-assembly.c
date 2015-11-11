@@ -9,9 +9,6 @@
 #include <stdlib.h>
 #include "cria_func.h"
 
-typedef int (*funcp) (int);
-typedef int (*funcp2) (funcp, int);
-
 int assemblyFoo (int a, int b);
 
 int soma (int a, int b) {

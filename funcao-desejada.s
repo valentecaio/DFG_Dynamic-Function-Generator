@@ -14,8 +14,8 @@ assemblyFoo:
 	push	%ebp
 	movl	%esp, %ebp
 	
-	pushl	12(%ebp)	# empurra o parametro da direita (inteiro, 32 bits)
-	pushl	8(%ebp)		# empurra o parametro da esquerda (inteiro, 32 bits)
+	pushl	$4		# empurra o parametro da direita (inteiro, 32 bits)
+	pushl	$2		# empurra o parametro da direita (inteiro, 32 bits)
 	call	soma
 	
 	movl	%ebp, %esp
