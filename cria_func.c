@@ -47,6 +47,10 @@ void libera_func (void* func) {
 void* cria_func (void* f, DescParam params[], int n) {
 	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
+	if (n==0) {
+		printf ("\n\nPrograma abortado! Nenhum parametro foi passado\n\n");
+		exit(1);
+	}
 	codigo = (unsigned char*) malloc (200* sizeof(char*));
 	tam = carrega_comeco (codigo);
 	
