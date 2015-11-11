@@ -7,7 +7,7 @@ typedef int (*funcp2) (funcp, int);
 
 int main (void) {
 	DescParam params[2];
-	funcp f_potencia = NULL; // bolinhas
+	funcp f_potencia = NULL;
 /*
 	params[0].tipo_val = DOUBLE_PAR;
 	params[0].orig_val = FIX_DIR;
@@ -22,6 +22,6 @@ int main (void) {
 	}
   */
 	f_potencia = (funcp) cria_func (pow, params, 2);
-	printf("\nTESTE EXECUTADO\n\nretornou: %d", f_potencia());
+	//printf("\nTESTE EXECUTADO\n\nretornou: %d", f_potencia());
 	return 0;
 }
