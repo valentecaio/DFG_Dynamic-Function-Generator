@@ -2,28 +2,29 @@
 /*
 a versão inicial vai apenas empilhar os parametros passados
 e fazer o call da função passada
-
-mudanca em workspace
 */
 
 #include <stdio.h>
-#include <cria_func.h>
+#include <stdlib.h>
+#include <math.h>
+#include "cria_func.h"
 
-typedef enum {INT_PAR, FLOAT_PAR, DOUBLE_PAR, PTR_PAR} TipoValor;
-typedef enum {PARAM, FIX_DIR, FIX_IND} OrigemValor;
+void printa_vetor_char_hexa (unsigned char *v, int n) {
+	int i;
+	printf ("\nEntradas do vetor: {");
+	for (i=0; i<(n-1); i++) {
+		printf ("%x, ", v[i]);
+	}
+	if (i<n) {
+		printf ("%x}", v[i]);
+	}
+	if (i==0) {
+		printf ("vetor vazio!");
+	}
+	printf ("\n\n");
+}
 
-typedef struct {
-   TipoValor    tipo_val;  /* indica o tipo do parametro (inteiro, float, double ou ponteiro) */
-   OrigemValor  orig_val;  /* indica a origem do valor do parametro */
-   union {
-     int v_int;
-     float v_float;
-     double v_double;
-     void* v_ptr;
-   } valor;         /* define o valor/endereço do valor do parametro */
-} DescParam;
-
-void carrega_comeco (unsigned char* cod) {
+int carrega_comeco (unsigned char* cod) {
 	int i=0;
 	cod[i] = 0x55; i++;	// push	%ebp
 	cod[i] = 0x89; i++;	// mov	%esp, %ebp
@@ -44,12 +45,15 @@ void libera_func (void* func) {
 }
 
 void* cria_func (void* f, DescParam params[], int n) {
-	unsigned char [200] codigo;
+	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
+	codigo = (unsigned char*) malloc (200* sizeof(char*));
 	tam = carrega_comeco (codigo);
 	
 	
 	tam = carrega_fim (codigo, tam);
+	printa_vetor_char_hexa(codigo, tam);
+	return codigo;
 }
 
 /*
