@@ -97,10 +97,7 @@ void* cria_func (void* f, DescParam params[], int n) {
 	// looping principal, percorre o vetor de parametros
 	for (j=n; j>=0; j--) { 
 		// trata os parametros começando pelo ultimo
-		
-		
 		if (params[j].tipo_val == INT_PAR) { // inteiros
-			
 			if (params[j].orig_val == FIX_DIR) { // parametro amarrado a constante
 				// push de 8 bits é 0x6a (nao é o que vamos usar)
 				// push de 16 ou 32 é 0x68
@@ -119,6 +116,30 @@ void* cria_func (void* f, DescParam params[], int n) {
 				// ff 33		pushl  (%ebx)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x33;
+			}
+		} else if (params[j].tipo_val == PTR_PAR) {
+			if (params[j].orig_val == FIX_DIR) {
+				
+			} else if (params[j].orig_val == PARAM) {
+				
+			} else if (params[j].orig_val == FIX_IND) {
+				
+			}
+		} else if (params[j].tipo_val == FLOAT_PAR) {
+			if (params[j].orig_val == FIX_DIR) {
+				
+			} else if (params[j].orig_val == PARAM) {
+				
+			} else if (params[j].orig_val == FIX_IND) {
+				
+			}
+		} else if (params[j].tipo_val == DOUBLE_PAR) {
+			if (params[j].orig_val == FIX_DIR) {
+				
+			} else if (params[j].orig_val == PARAM) {
+				
+			} else if (params[j].orig_val == FIX_IND) {
+				
 			}
 		}
 	}
