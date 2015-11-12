@@ -25,7 +25,9 @@ int main (void) {
 	params[2].orig_val = FIX_IND;
 	params[2].valor.v_ptr = &p2;
 	
-	f_gerada = (funcp3) cria_func (soma, params, 3);
-	printf("\nTESTE EXECUTADO\n\nesperado: %d, obtido: %d\n\n", soma(p0, p1, p2), f_gerada(p1, &p2));
+	f_gerada = (funcp1) cria_func (soma, params, 3);
+	printf("\nTESTE EXECUTADO\n\nesperado: %d, obtido: %d\n\n", soma(p0, p1, p2), f_gerada(p1));
+	p2 = 2*p2;
+	printf("\nvariavel modificada!\n\nesperado: %d, obtido: %d\n\n", soma(p0, p1, p2), f_gerada(p1));
 	return 0;
 }
