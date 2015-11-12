@@ -109,9 +109,15 @@ void* cria_func (void* f, DescParam params[], int n) {
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x75;
 				codigo[tam++] = distance_from_ebp(params, j);
-			} else { // parametro amarrado a variavel
-				
-				
+			} else if (params[j].orig_val == FIX_IND) { // parametro amarrado a variavel
+				// 8b 5d 0c		mov    0xc(%ebp),%ebx	<< nao é o caso
+				// bb ea 00 00 00	mov    $0xea,%ebx	<< é o que queremos
+				// ff 33		pushl  (%ebx)
+				printf ("\n\n terceiro condicional, %d\n\n", params[j].valor.v_int);
+				codigo[tam++] = 0xbb;
+				tam = add_int(codigo, tam, params[j].valor.v_int);
+				codigo[tam++] = 0xff;
+				codigo[tam++] = 0x33;
 			}
 		}
 	}
@@ -136,8 +142,11 @@ void* cria_func (void* f, DescParam params[], int n) {
 /*
    0:   55                      push   %ebp
    1:   89 e5                   mov    %esp,%ebp
+   
    3:   8b 45 08                mov    0x8(%ebp),%eax
    6:   ff 75 0c                pushl  0xc(%ebp)
+  
+  
    9:   ff d0                   call   *%eax
    b:   89 ec                   mov    %ebp,%esp
    d:   5d                      pop    %ebp

@@ -16,6 +16,9 @@ assemblyFoo:
 	
 	pushl	$2000
 	pushl	8(%ebp)
+	movl	$234, %ebx
+	pushl	(%ebx)
+	pushl	$(234)
 	call	soma
 	
 	movl	%ebp, %esp
