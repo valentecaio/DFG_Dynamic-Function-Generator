@@ -51,32 +51,62 @@ void libera_func (void* func) {
 	
 }
 
+int add_int (unsigned char *codigo, int tam, int x) {
+	U u;
+	int i;
+	u.i = x;
+	for (i=0; i<4; i++) {
+		codigo[tam++] = u.c[i];
+	}
+	return tam;
+}
+
+// retorna a posição relativa de um endereço a partir de ebp, em bytes
+int distance_from_ebp (DescParam params[], int index) {
+	int distance;
+	int i;
+	distance = 4; // sempre tem os 4 bytes do endereco de retorno
+	for (i=(index-1); i>=0; i--) { // anda ao contrario pq a pilha empilha os ultimos por baixo
+		if (params[i].tipo_val == DOUBLE_PAR) {
+			distance += 8;
+		} else { // INT_PAR || FLOAT_PAR || PTR_PAR
+			distance += 4;
+		}
+	}
+	return distance;
+}
 
 void* cria_func (void* f, DescParam params[], int n) {
 	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
-	int i, j;
-	U u;
+	int j;
 	
 	if (n==0) {
 		printf ("\n\nPrograma abortado! Nenhum parametro foi passado\n\n");
 		exit(1);
 	}
+	
+	// aloca a variavel e carrega os primeiros comandos de pilha
 	codigo = (unsigned char*) malloc (200 * sizeof(char));
 	tam = carrega_comeco (codigo);
 	
 	// looping principal
 	for (j=n; j>=0; j--) { 
 		// trata os parametros começando pelo ultimo
-		if (params[j].orig_val == FIX_DIR) {
-			if (params[j].tipo_val == INT_PAR) {
+		
+		
+		if (params[j].tipo_val == INT_PAR) { // inteiros
+			
+			if (params[j].orig_val == FIX_DIR) { // parametro amarrado a constante
 				// push de 8 bits é 0x6a
 				// push de 16 ou 32 é 0x68
 				codigo[tam++] = 0x68;
-				u.i = params[j].valor.v_int;
-				for (i=0; i<4; i++) {
-					codigo[tam++] = u.c[i];
-				}
+				tam = add_int (codigo, tam, params[j].valor.v_int);
+			} else if (params[j].orig_val == PARAM) { // parametro nao amarrado
+				// ff 75 08	pushl  0x8(%ebp)
+				codigo[tam++] = 0xff;
+				codigo[tam++] = 0x75;
+				codigo[tam++] = distance_from_ebp(params, j);
 			}
 		}
 	}
@@ -87,10 +117,7 @@ void* cria_func (void* f, DescParam params[], int n) {
 	codigo[tam++] = 0xb8;
 	
 	// insere o endereco de f
-	u.i = (int) f;
-	for (i=0; i<4; i++) {
-		codigo[tam++] = u.c[i];
-	}
+	tam = add_int (codigo, tam, (int)f);
 	
 	// ff d0	call   *%eax
 	codigo[tam++] = 0xff;
