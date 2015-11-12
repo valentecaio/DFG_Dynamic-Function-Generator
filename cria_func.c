@@ -47,10 +47,12 @@ int carrega_fim (unsigned char cod[], int tam) {
 	return tam;
 }
 
+// TODO
 void libera_func (void* func) {
 	
 }
 
+// adiciona os 4 bytes de um inteiro no vetor de codigo
 int add_int (unsigned char *codigo, int tam, int x) {
 	U u;
 	int i;
@@ -61,7 +63,7 @@ int add_int (unsigned char *codigo, int tam, int x) {
 	return tam;
 }
 
-// retorna a posição relativa de um endereço a partir de ebp, em bytes
+// retorna a posição relativa de uma 'variavel' passada a partir de ebp, em bytes
 int distance_from_ebp (DescParam params[], int index) {
 	int distance;
 	int i;
@@ -90,7 +92,7 @@ void* cria_func (void* f, DescParam params[], int n) {
 	codigo = (unsigned char*) malloc (200 * sizeof(char));
 	tam = carrega_comeco (codigo);
 	
-	// looping principal
+	// looping principal, percorre o vetor de parametros
 	for (j=n; j>=0; j--) { 
 		// trata os parametros começando pelo ultimo
 		
@@ -98,15 +100,18 @@ void* cria_func (void* f, DescParam params[], int n) {
 		if (params[j].tipo_val == INT_PAR) { // inteiros
 			
 			if (params[j].orig_val == FIX_DIR) { // parametro amarrado a constante
-				// push de 8 bits é 0x6a
+				// push de 8 bits é 0x6a (nao é o que vamos usar)
 				// push de 16 ou 32 é 0x68
 				codigo[tam++] = 0x68;
 				tam = add_int (codigo, tam, params[j].valor.v_int);
-			} else if (params[j].orig_val == PARAM) { // parametro nao amarrado
+			} else if (params[j].orig_val == PARAM) { // parametro nao amarrado a nada
 				// ff 75 08	pushl  0x8(%ebp)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x75;
 				codigo[tam++] = distance_from_ebp(params, j);
+			} else { // parametro amarrado a variavel
+				
+				
 			}
 		}
 	}
