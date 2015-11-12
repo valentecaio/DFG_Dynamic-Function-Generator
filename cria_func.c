@@ -11,6 +11,11 @@ gcc -Wall -m32 -Wa,--execstack -o teste cria_func.c teste.c -lm
 #include <math.h>
 #include "cria_func.h"
 
+typedef union {
+	int i;
+	char c[4];
+} U;
+
 void printa_vetor_char_hexa (unsigned char *v, int n) {
 	int i;
 	printf ("\nEntradas do vetor: {");
@@ -46,11 +51,12 @@ void libera_func (void* func) {
 	
 }
 
+
 void* cria_func (void* f, DescParam params[], int n) {
 	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
-	unsigned int callFunction;
-	int i=0;
+	int i, j;
+	U u;
 	
 	if (n==0) {
 		printf ("\n\nPrograma abortado! Nenhum parametro foi passado\n\n");
@@ -59,37 +65,36 @@ void* cria_func (void* f, DescParam params[], int n) {
 	codigo = (unsigned char*) malloc (200 * sizeof(char));
 	tam = carrega_comeco (codigo);
 	
-	// trata o primeiro parametro
-	if (params[0].orig_val == FIX_DIR) {
-		if (params[0].tipo_val == INT_PAR) {
-			codigo[tam++] = 0x6a;
-			codigo[tam++] = params[0].valor.v_int;
-		}
-	}
-
-	// trata o segundo parametro
-	if (params[1].orig_val == FIX_DIR) {
-		if (params[1].tipo_val == INT_PAR) {
-			codigo[tam++] = 0x6a;
-			codigo[tam++] = params[1].valor.v_int;
+	// looping principal
+	for (j=n; j>=0; j--) { 
+		// trata os parametros começando pelo ultimo
+		if (params[j].orig_val == FIX_DIR) {
+			if (params[j].tipo_val == INT_PAR) {
+				// push de 8 bits é 0x6a
+				// push de 16 ou 32 é 0x68
+				codigo[tam++] = 0x68;
+				u.i = params[j].valor.v_int;
+				for (i=0; i<4; i++) {
+					codigo[tam++] = u.c[i];
+				}
+			}
 		}
 	}
 	
 	// faz o call
-	// b8 56 34 12 00          mov    $0x123456,%eax
+	
+	// oxb8 é movl para %eax
 	codigo[tam++] = 0xb8;
 	
-	// insere o codigo de f
-	callFunction = (unsigned int) f;
-	for (i=0; i<=3; i++) {
-		codigo[tam++] = (callFunction >> (i*8)); // tem uma mascara &0xff implicita
+	// insere o endereco de f
+	u.i = (int) f;
+	for (i=0; i<4; i++) {
+		codigo[tam++] = u.c[i];
 	}
 	
 	// ff d0	call   *%eax
 	codigo[tam++] = 0xff;
 	codigo[tam++] = 0xd0;
-	
-	printf ("\n\n%d\n\n", callFunction);
 	
 	tam = carrega_fim (codigo, tam);
 	printa_vetor_char_hexa(codigo, tam);
