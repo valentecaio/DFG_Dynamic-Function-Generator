@@ -13,6 +13,7 @@
 assemblyFoo:
 	push	%ebp
 	movl	%esp, %ebp
+	push	%ebx
 	
 	pushl	$2000
 	pushl	8(%ebp)
@@ -21,6 +22,7 @@ assemblyFoo:
 	pushl	$(234)
 	call	soma
 	
+	popl	%ebx
 	movl	%ebp, %esp
 	popl	%ebp
 	ret

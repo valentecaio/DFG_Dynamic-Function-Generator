@@ -36,10 +36,12 @@ int carrega_comeco (unsigned char* cod) {
 	cod[i++] = 0x55;	// push	%ebp
 	cod[i++] = 0x89;	// mov	%esp, %ebp
 	cod[i++] = 0xe5;
+	cod[i++] = 0x53;	// push	%ebx
 	return i;
 }
 
 int carrega_fim (unsigned char cod[], int tam) {
+	cod[tam++] = 0x5b;	// pop	%ebx
 	cod[tam++] = 0x89;	// mov	%ebp, %esp
 	cod[tam++] = 0xec;
 	cod[tam++] = 0x5d;	// pop	%ebp
@@ -110,12 +112,11 @@ void* cria_func (void* f, DescParam params[], int n) {
 				codigo[tam++] = 0x75;
 				codigo[tam++] = distance_from_ebp(params, j);
 			} else if (params[j].orig_val == FIX_IND) { // parametro amarrado a variavel
-				// 8b 5d 0c		mov    0xc(%ebp),%ebx	<< nao é o caso
-				// bb ea 00 00 00	mov    $0xea,%ebx	<< é o que queremos
-				// ff 33		pushl  (%ebx)
-				printf ("\n\n terceiro condicional, %d\n\n", params[j].valor.v_int);
+				// bb ea 00 00 00	mov    $0xea, %ebx
 				codigo[tam++] = 0xbb;
 				tam = add_int(codigo, tam, params[j].valor.v_int);
+				
+				// ff 33		pushl  (%ebx)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x33;
 			}
