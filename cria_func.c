@@ -77,17 +77,6 @@ int add_int (unsigned char *codigo, int tam, int x) {
 	return tam;
 }
 
-int add_ptr (unsigned char *codigo, int tam, void *x) {
-	U u;
-	int i;
-	u.p = x;
-	for (i=0; i<4; i++) {
-		codigo[tam++] = u.c[i];
-	}
-	
-	return tam;
-}
-
 // retorna a posição relativa de uma 'variavel' passada a partir de ebp, em bytes
 int distance_from_ebp (DescParam params[], int index) {
 	int distance;
