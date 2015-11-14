@@ -116,7 +116,7 @@ void* cria_func (void* f, DescParam params[], int n) {
 		// trata os parametros começando pelo ultimo
 		tipo = params[j].tipo_val;
 		origem = params[j].orig_val;
-		if (tipo == INT_PAR || tipo == PTR_PAR) { // inteiros ou ponteiros
+		if (tipo == INT_PAR || tipo == PTR_PAR || tipo == FLOAT_PAR) { // inteiros ou ponteiros
 			if (origem == FIX_DIR) { // parametro amarrado a constante
 				// push de 8 bits é 0x6a (nao é o que vamos usar)
 				// push de 16 ou 32 é 0x68
@@ -137,24 +137,6 @@ void* cria_func (void* f, DescParam params[], int n) {
 				codigo[tam++] = 0x33;
 			}
 		} 
-		else if (tipo == FLOAT_PAR) {
-			if (origem == FIX_DIR) {
-				
-			} else if (origem == PARAM) {
-				// ff 75 08	pushl  0x8(%ebp)
-				codigo[tam++] = 0xff;
-				codigo[tam++] = 0x75;
-				codigo[tam++] = distance_from_ebp(params, j); 
-				// d9 45 0c	flds   0xc(%ebp)
-				/*
-				codigo[tam++] = 0xd9;
-				codigo[tam++] = 0x45;
-				codigo[tam++] = distance_from_ebp(params, j);
-				*/
-			} else if (origem == FIX_IND) {
-				
-			}
-		}
 		else if (tipo == DOUBLE_PAR) {
 			if (origem == FIX_DIR) {
 				
