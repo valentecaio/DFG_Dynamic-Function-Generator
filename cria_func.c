@@ -13,13 +13,14 @@ gcc -Wall -m32 -Wa,--execstack -o teste cria_func.c teste.c -lm
 
 typedef union {
 	int i;
+	void *p;
 	char c[4];
 } U;
 
 void print_end (void *x, char *name) {
 	U u;
 	int i;
-	u.i = x;
+	u.p = x;
 	printf("\n\nendereço passado: %s", name);
 	for (i=0; i<4; i++) {
 		printf ("\ni=%d, u.c[i]=%x", i, u.c[i]);
@@ -140,10 +141,16 @@ void* cria_func (void* f, DescParam params[], int n) {
 			if (origem == FIX_DIR) {
 				
 			} else if (origem == PARAM) {
+				// ff 75 08	pushl  0x8(%ebp)
+				codigo[tam++] = 0xff;
+				codigo[tam++] = 0x75;
+				codigo[tam++] = distance_from_ebp(params, j); 
 				// d9 45 0c	flds   0xc(%ebp)
+				/*
 				codigo[tam++] = 0xd9;
 				codigo[tam++] = 0x45;
 				codigo[tam++] = distance_from_ebp(params, j);
+				*/
 			} else if (origem == FIX_IND) {
 				
 			}
