@@ -13,14 +13,13 @@ gcc -Wall -m32 -Wa,--execstack -o teste cria_func.c teste.c -lm
 
 typedef union {
 	int i;
-	void *p;
 	char c[4];
 } U;
 
 void print_end (void *x, char *name) {
 	U u;
 	int i;
-	u.p = x;
+	u.i = x;
 	printf("\n\nendereço passado: %s", name);
 	for (i=0; i<4; i++) {
 		printf ("\ni=%d, u.c[i]=%x", i, u.c[i]);
