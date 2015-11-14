@@ -15,6 +15,7 @@ typedef struct {
    } valor;         /* define o valor/endereco do valor do parametro */
 } DescParam;
 
+void print_end (void *x, char *name);
 void* cria_func (void* f, DescParam params[], int n);
 void libera_func (void* func);
 
