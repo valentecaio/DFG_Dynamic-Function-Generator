@@ -13,8 +13,20 @@ gcc -Wall -m32 -Wa,--execstack -o teste cria_func.c teste.c -lm
 
 typedef union {
 	int i;
+	void *p;
 	char c[4];
 } U;
+
+void print_end (void *x, char *name) {
+	U u;
+	int i;
+	u.p = x;
+	printf("\n\nendereço passado: %s", name);
+	for (i=0; i<4; i++) {
+		printf ("\ni=%d, u.c[i]=%x", i, u.c[i]);
+	}
+	printf ("\n");
+}
 
 void printa_vetor_char_hexa (unsigned char *v, int n) {
 	int i;
@@ -65,16 +77,29 @@ int add_int (unsigned char *codigo, int tam, int x) {
 	return tam;
 }
 
+int add_ptr (unsigned char *codigo, int tam, void *x) {
+	U u;
+	int i;
+	u.p = x;
+	for (i=0; i<4; i++) {
+		codigo[tam++] = u.c[i];
+	}
+	
+	return tam;
+}
+
 // retorna a posição relativa de uma 'variavel' passada a partir de ebp, em bytes
 int distance_from_ebp (DescParam params[], int index) {
 	int distance;
 	int i;
 	distance = 4; // sempre tem os 4 bytes do endereco de retorno
-	for (i=(index-1); i>=0; i--) { // anda ao contrario pq a pilha empilha os ultimos por baixo
-		if (params[i].tipo_val == DOUBLE_PAR) {
-			distance += 8;
-		} else { // INT_PAR || FLOAT_PAR || PTR_PAR
-			distance += 4;
+	for (i=index; i>=0; i--) { // anda ao contrario pq a pilha empilha os ultimos por baixo
+		if (params[i].orig_val == PARAM) { // só incrementa se houver parametros passados
+			if (params[i].tipo_val == DOUBLE_PAR) {
+				distance += 8;
+			} else { // INT_PAR || FLOAT_PAR || PTR_PAR
+				distance += 4;
+			}
 		}
 	}
 	return distance;
@@ -84,7 +109,6 @@ void* cria_func (void* f, DescParam params[], int n) {
 	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
 	int j;
-	
 	if (n==0) {
 		printf ("\n\nPrograma abortado! Nenhum parametro foi passado\n\n");
 		exit(1);
@@ -94,10 +118,12 @@ void* cria_func (void* f, DescParam params[], int n) {
 	codigo = (unsigned char*) malloc (200 * sizeof(char));
 	tam = carrega_comeco (codigo);
 	
+	//codigo = {0x55, 0x89, 0xe5, 0x53, 0xdd, 0x45, 0x10, 0xff, 0x75, 0x8, 0x68, 0xd0, 0x7, 0x0, 0x0, 0xb8, 0x22, 0x8b, 0x4, 0x8, 0xff, 0xd0, 0x5b, 0x89, 0xec, 0x5d, 0xc4};
+	//return codigo;
 	// looping principal, percorre o vetor de parametros
-	for (j=n; j>=0; j--) { 
+	for (j=(n-1); j>=0; j--) {
 		// trata os parametros começando pelo ultimo
-		if (params[j].tipo_val == INT_PAR) { // inteiros
+		if (params[j].tipo_val == INT_PAR || params[j].tipo_val == PTR_PAR) { // inteiros ou ponteiros
 			if (params[j].orig_val == FIX_DIR) { // parametro amarrado a constante
 				// push de 8 bits é 0x6a (nao é o que vamos usar)
 				// push de 16 ou 32 é 0x68
@@ -107,7 +133,7 @@ void* cria_func (void* f, DescParam params[], int n) {
 				// ff 75 08	pushl  0x8(%ebp)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x75;
-				codigo[tam++] = distance_from_ebp(params, j);
+				codigo[tam++] = distance_from_ebp(params, j); 
 			} else if (params[j].orig_val == FIX_IND) { // parametro amarrado a variavel
 				// bb ea 00 00 00	mov    $0xea, %ebx
 				codigo[tam++] = 0xbb;
@@ -117,27 +143,27 @@ void* cria_func (void* f, DescParam params[], int n) {
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x33;
 			}
-		} else if (params[j].tipo_val == PTR_PAR) {
+		} 
+		else if (params[j].tipo_val == FLOAT_PAR) {
 			if (params[j].orig_val == FIX_DIR) {
 				
 			} else if (params[j].orig_val == PARAM) {
-				
+				// d9 45 0c	flds   0xc(%ebp)
+				codigo[tam++] = 0xd9;
+				codigo[tam++] = 0x45;
+				codigo[tam++] = distance_from_ebp(params, j);
 			} else if (params[j].orig_val == FIX_IND) {
 				
 			}
-		} else if (params[j].tipo_val == FLOAT_PAR) {
+		}
+		else if (params[j].tipo_val == DOUBLE_PAR) {
 			if (params[j].orig_val == FIX_DIR) {
 				
 			} else if (params[j].orig_val == PARAM) {
-				
-			} else if (params[j].orig_val == FIX_IND) {
-				
-			}
-		} else if (params[j].tipo_val == DOUBLE_PAR) {
-			if (params[j].orig_val == FIX_DIR) {
-				
-			} else if (params[j].orig_val == PARAM) {
-				
+				// dd 45 0c	fldl   0xc(%ebp)
+				codigo[tam++] = 0xdd;
+				codigo[tam++] = 0x45;
+				codigo[tam++] = distance_from_ebp(params, j);
 			} else if (params[j].orig_val == FIX_IND) {
 				
 			}
