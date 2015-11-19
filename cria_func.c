@@ -14,6 +14,7 @@ gcc -Wall -m32 -Wa,--execstack -o teste cria_func.c teste.c -lm
 typedef union {
 	int i;
 	void *p;
+	float f;
 	char c[4];
 } U;
 
@@ -48,12 +49,10 @@ int carrega_comeco (unsigned char* cod) {
 	cod[i++] = 0x55;	// push	%ebp
 	cod[i++] = 0x89;	// mov	%esp, %ebp
 	cod[i++] = 0xe5;
-	cod[i++] = 0x53;	// push	%ebx
 	return i;
 }
 
 int carrega_fim (unsigned char cod[], int tam) {
-	cod[tam++] = 0x5b;	// pop	%ebx
 	cod[tam++] = 0x89;	// mov	%ebp, %esp
 	cod[tam++] = 0xec;
 	cod[tam++] = 0x5d;	// pop	%ebp
@@ -63,7 +62,7 @@ int carrega_fim (unsigned char cod[], int tam) {
 
 // TODO
 void libera_func (void* func) {
-	
+	free (func);
 }
 
 // adiciona os 4 bytes de um inteiro no vetor de codigo
@@ -76,19 +75,35 @@ int add_int (unsigned char *codigo, int tam, int x) {
 	}
 	return tam;
 }
+int add_double (unsigned char *codigo, int tam, float x) {
+	U u;
+	int i;
+	u.f = x;
+	for (i=0; i<8; i++) {
+		codigo[tam++] = u.c[i];
+	}
+	return tam;
+}
 
 // retorna a posição relativa de uma 'variavel' passada a partir de ebp, em bytes
 int distance_from_ebp (DescParam params[], int index) {
-	int distance;
 	int i;
-	distance = 4; // sempre tem os 4 bytes do endereco de retorno
-	for (i=index; i>=0; i--) { // anda ao contrario pq a pilha empilha os ultimos por baixo
+	int distance = 8; // o primeiro sempre começa no 8
+	for (i=(index-1); i>=0; i--) { // anda ao contrario pq a pilha empilha os ultimos por baixo
 		if (params[i].orig_val == PARAM) { // só incrementa se houver parametros passados
-			if (params[i].tipo_val == DOUBLE_PAR) {
-				distance += 8;
-			} else { // INT_PAR || FLOAT_PAR || PTR_PAR
-				distance += 4;
-			}
+			distance += (params[i].tipo_val == DOUBLE_PAR)? 8:4;
+		}
+	}
+	return distance;
+}
+
+// dá segmentation fault (nao sei pq)
+int distance_from_ebp_new (DescParam params[], int index, int size_of_param_vector) {
+	int i;
+	int distance=8;  // o primeiro sempre começa no 8
+	for (i=(index+1); i < size_of_param_vector; i--) {
+		if (params[i].orig_val == PARAM) { // só incrementa se houver parametros de indice maior
+			distance += (params[i].tipo_val == DOUBLE_PAR)? 8:4;
 		}
 	}
 	return distance;
@@ -97,58 +112,75 @@ int distance_from_ebp (DescParam params[], int index) {
 void* cria_func (void* f, DescParam params[], int n) {
 	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
-	int j;
+	int param_index;
 	TipoValor tipo;
 	OrigemValor origem;
-	if (n==0) {
-		printf ("\n\nPrograma abortado! Nenhum parametro foi passado\n\n");
-		exit(1);
-	}
-	
+
 	// aloca a variavel e carrega os primeiros comandos de pilha
 	codigo = (unsigned char*) malloc (200 * sizeof(char));
 	tam = carrega_comeco (codigo);
+
+	// printa uma tabela util para os testes
+	for (param_index=(n-1); param_index>=0; param_index--) {
+		printf ("\nindice = %d\t| distance = %d\t| %s",
+			param_index, 
+			distance_from_ebp(params, param_index),
+			(params[param_index].orig_val == PARAM)? 
+			(params[param_index].tipo_val == DOUBLE_PAR)?
+			"PARAM DOUBLE":"PARAM INT"
+			:"-"
+		);
+	}
+	printf ("\n\n");
 	
-	//codigo = {0x55, 0x89, 0xe5, 0x53, 0xdd, 0x45, 0x10, 0xff, 0x75, 0x8, 0x68, 0xd0, 0x7, 0x0, 0x0, 0xb8, 0x22, 0x8b, 0x4, 0x8, 0xff, 0xd0, 0x5b, 0x89, 0xec, 0x5d, 0xc4};
-	//return codigo;
 	// looping principal, percorre o vetor de parametros
-	for (j=(n-1); j>=0; j--) {
+	for (param_index=(n-1); param_index>=0; param_index--) {
 		// trata os parametros começando pelo ultimo
-		tipo = params[j].tipo_val;
-		origem = params[j].orig_val;
-		if (tipo == INT_PAR || tipo == PTR_PAR || tipo == FLOAT_PAR) { // inteiros ou ponteiros
+		tipo = params[param_index].tipo_val;
+		origem = params[param_index].orig_val;
+		if (tipo == DOUBLE_PAR) { // trata os double
+			if (origem == FIX_DIR) {
+				// push de 16 ou 32 é 0x68
+				codigo[tam++] = 0x68;
+				tam = add_double (codigo, tam, params[param_index].valor.v_float);
+			} else if (origem == PARAM) {
+				// ff 75 08	pushl  0x8(%ebp)
+				codigo[tam++] = 0xff;
+				codigo[tam++] = 0x75;
+				//codigo[tam++] = distance_from_ebp_new(params, param_index, n);
+				codigo[tam++] = distance_from_ebp(params, param_index);
+			}
+		}
+		 { // inteiros, ponteiros e float
 			if (origem == FIX_DIR) { // parametro amarrado a constante
 				// push de 8 bits é 0x6a (nao é o que vamos usar)
 				// push de 16 ou 32 é 0x68
 				codigo[tam++] = 0x68;
-				tam = add_int (codigo, tam, params[j].valor.v_int);
+				tam = add_int (codigo, tam, params[param_index].valor.v_int);
 			} else if (origem == PARAM) { // parametro nao amarrado a nada
 				// ff 75 08	pushl  0x8(%ebp)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x75;
-				codigo[tam++] = distance_from_ebp(params, j); 
+				//codigo[tam++] = distance_from_ebp_new(params, param_index, n);
+				codigo[tam++] = distance_from_ebp(params, param_index);
 			} else if (origem == FIX_IND) { // parametro amarrado a variavel
 				// bb ea 00 00 00	mov    $0xea, %ebx
 				codigo[tam++] = 0xbb;
-				tam = add_int(codigo, tam, params[j].valor.v_int);
+				tam = add_int(codigo, tam, params[param_index].valor.v_int);
+				
+				if (tipo == DOUBLE_PAR) {	
+				// ff 73 04		pushl  0x4(%ebx)
+				codigo[tam++] = 0xff;
+				codigo[tam++] = 0x73;
+				codigo[tam++] = 0x04;
+				}
 				
 				// ff 33		pushl  (%ebx)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x33;
 			}
 		} 
-		else if (tipo == DOUBLE_PAR) {
-			if (origem == FIX_DIR) {
-				
-			} else if (origem == PARAM) {
-				// dd 45 0c	fldl   0xc(%ebp)
-				codigo[tam++] = 0xdd;
-				codigo[tam++] = 0x45;
-				codigo[tam++] = distance_from_ebp(params, j);
-			} else if (origem == FIX_IND) {
-				
-			}
-		}
+		
 	}
 	
 	// faz o call
