@@ -27,6 +27,9 @@ assemblyFoo:
 	pushl	$(234)
 	call	soma
 	
+	pushl  4(%ebx)
+	addl	$438, %esp
+	
 	popl	%ebx
 	movl	%ebp, %esp
 	popl	%ebp
