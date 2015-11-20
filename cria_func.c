@@ -18,17 +18,6 @@ typedef union {
 	char c[4];
 } U;
 
-void print_end (void *x, char *name) {
-	U u;
-	int i;
-	u.p = x;
-	printf("\n\nendereço passado: %s", name);
-	for (i=0; i<4; i++) {
-		printf ("\ni=%d, u.c[i]=%x", i, u.c[i]);
-	}
-	printf ("\n");
-}
-
 void printa_vetor_char_hexa (unsigned char *v, int n) {
 	int i;
 	printf ("\nEntradas do vetor: {");
@@ -77,7 +66,7 @@ int add_int (unsigned char *codigo, int tam, int x) {
 	return tam;
 }
 
-// retorna a posição relativa de uma 'variavel' passada a partir de ebp, em bytes
+// retorna a posição relativa de uma 'variavel' passada pela pilha , em bytes (é a distancia ate ebp na memoria)
 int distance_from_ebp (DescParam params[], int index) {
 	int i;
 	int distance = 8; // o primeiro sempre começa no 8
@@ -89,20 +78,8 @@ int distance_from_ebp (DescParam params[], int index) {
 	return distance;
 }
 
-// dá segmentation fault (nao sei pq)
-int distance_from_ebp_new (DescParam params[], int index, int size_of_param_vector) {
-	int i;
-	int distance=8;  // o primeiro sempre começa no 8
-	for (i=(index+1); i < size_of_param_vector; i--) {
-		if (params[i].orig_val == PARAM) { // só incrementa se houver parametros de indice maior
-			distance += (params[i].tipo_val == DOUBLE_PAR)? 8:4;
-		}
-	}
-	return distance;
-}
-
+// printa uma tabela util para os testes da funcao acima
 void print_table_distance_from_ebp(DescParam params[], int  n) {
-	// printa uma tabela util para os testes
 	int param_index;
 	for (param_index=(n-1); param_index>=0; param_index--) {
 		printf ("\nindice = %d\t| distance = %d\t| %s",
@@ -110,13 +87,14 @@ void print_table_distance_from_ebp(DescParam params[], int  n) {
 			distance_from_ebp(params, param_index),
 			(params[param_index].orig_val == PARAM)? 
 			(params[param_index].tipo_val == DOUBLE_PAR)?
-			"PARAM DOUBLE":"PARAM INT"
+			"PARAM 8 BYTES":"PARAM 4 BYTES"
 			:"-"
 		);
 	}
 	printf ("\n\n");
 }
 
+// calcula qual o tamanho da pilha de variaveis
 int altura_pilha_bytes (DescParam params[], int size_of_param_vector) {
 	int cont=0;
 	int i=0;
@@ -128,18 +106,41 @@ int altura_pilha_bytes (DescParam params[], int size_of_param_vector) {
 	return cont;
 }
 
+// calcula o tamanho minimo necessario para gerar o vetor de codigo
+int calcula_tamanho_vetor_codigo (DescParam params[], int size_of_param_vector) {
+	TipoValor tipo;
+	OrigemValor origem;
+	int cont = 4+5+7+6; // começo + fim + call + addl
+	int i;
+	for (i=0; i<size_of_param_vector; i++) {
+		tipo = params[i].tipo_val;
+		origem = params[i].orig_val;
+		if (origem == FIX_DIR)
+			cont += (tipo == DOUBLE_PAR) ? 13 : 5;
+		else if (origem == PARAM)
+			cont += (tipo == DOUBLE_PAR) ? 06 : 3;
+		else
+			cont += (tipo == DOUBLE_PAR) ? 10 : 7;
+	}
+	return cont;
+}
+
 void* cria_func (void* f, DescParam params[], int n) {
 	unsigned char *codigo;
 	int tam=0;	// representa o primeiro indice vazio do vetor
 	int param_index;
+	int vector_size;
 	TipoValor tipo;
 	OrigemValor origem;
+	
+	vector_size = calcula_tamanho_vetor_codigo (params, n);
 
 	// aloca a variavel e carrega os primeiros comandos de pilha
-	codigo = (unsigned char*) malloc (200 * sizeof(char));
+	codigo = (unsigned char*) malloc (vector_size * sizeof(char));
 
 	print_table_distance_from_ebp(params, n);
 	
+	// 4
 	tam = carrega_comeco (codigo);
 	
 	// looping principal, percorre o vetor de parametros
@@ -147,8 +148,8 @@ void* cria_func (void* f, DescParam params[], int n) {
 		// trata os parametros começando pelo ultimo
 		tipo = params[param_index].tipo_val;
 		origem = params[param_index].orig_val;
-		if (origem == FIX_DIR) { // parametro amarrado a constante
-			if (tipo==DOUBLE_PAR) {
+		if (origem == FIX_DIR) { // parametro amarrado a constante, 5 + 8 = 13
+			if (tipo==DOUBLE_PAR) { // 8
 				// push da segunda metade da union valor
 				// bb ea 00 00 00	mov    $0xea, %ebx
 				codigo[tam++] = 0xbb;
@@ -161,8 +162,8 @@ void* cria_func (void* f, DescParam params[], int n) {
 			// push de 16 ou 32 é 0x68
 			codigo[tam++] = 0x68;
 			tam = add_int (codigo, tam, params[param_index].valor.v_int);
-		} else if (origem == PARAM) { // parametro nao amarrado a nada
-			if (tipo==DOUBLE_PAR) {
+		} else if (origem == PARAM) { // parametro nao amarrado a nada, 3 + 3 = 6
+			if (tipo==DOUBLE_PAR) { // 3
 				// ff 75 08	pushl  0x8(%ebp)
 				codigo[tam++] = 0xff;
 				codigo[tam++] = 0x75;
@@ -172,12 +173,12 @@ void* cria_func (void* f, DescParam params[], int n) {
 			codigo[tam++] = 0xff;
 			codigo[tam++] = 0x75;
 			codigo[tam++] = distance_from_ebp(params, param_index);
-		} else if (origem == FIX_IND) { // parametro amarrado a variavel
+		} else if (origem == FIX_IND) { // parametro amarrado a variavel, 7 + 3 = 10
 			// bb ea 00 00 00	mov    $0xea, %ebx
 			codigo[tam++] = 0xbb;
 			tam = add_int(codigo, tam, params[param_index].valor.v_int);
 			
-			if (tipo == DOUBLE_PAR) {
+			if (tipo == DOUBLE_PAR) { // 3
 				// empurra a segunda metade da union valor
 				// ff 73 04		pushl  0x4(%ebx)
 				codigo[tam++] = 0xff;
@@ -192,7 +193,7 @@ void* cria_func (void* f, DescParam params[], int n) {
 		
 	}
 	
-	// faz o call
+	// faz o call, 7
 	// 0xb8 é movl para %eax
 	codigo[tam++] = 0xb8;
 	// insere o endereco de f
@@ -201,14 +202,16 @@ void* cria_func (void* f, DescParam params[], int n) {
 	codigo[tam++] = 0xff;
 	codigo[tam++] = 0xd0;
 	
-	// faz o addl para 'apagar' os parametros da pilha
+	// faz o addl para 'apagar' os parametros da pilha, 6
 	// 81 c4 b6 01 00 00       add    $0x1b6,%esp
 	codigo[tam++] = 0x81;
 	codigo[tam++] = 0xc4;
 	tam = add_int(codigo, tam, altura_pilha_bytes (params, n));
 	
+	// 5
 	tam = carrega_fim (codigo, tam);
 	printa_vetor_char_hexa(codigo, tam);
+	printf("\n\ntam = %d, vector_size = %d\n\n", tam, vector_size);
 	return codigo;
 }
 
